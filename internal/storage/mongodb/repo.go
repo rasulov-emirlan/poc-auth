@@ -20,10 +20,6 @@ func NewRepoCombiner(ctx context.Context, cfg config.Config, logger *slog.Logger
 		return RepoCombiner{}, fmt.Errorf("failed to connect to mongodb: %w", err)
 	}
 
-	if err := conn.Ping(ctx, nil); err != nil {
-		return RepoCombiner{}, fmt.Errorf("failed to ping mongodb: %w", err)
-	}
-
 	return RepoCombiner{
 		conn: conn,
 	}, nil
@@ -35,4 +31,8 @@ func (r RepoCombiner) Close(ctx context.Context) error {
 
 func (r RepoCombiner) Check(ctx context.Context) error {
 	return r.conn.Ping(ctx, nil)
+}
+
+func (r RepoCombiner) Users() UsersRepository {
+	return UsersRepository(r)
 }

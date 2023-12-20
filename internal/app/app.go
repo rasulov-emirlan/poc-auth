@@ -8,21 +8,22 @@ import (
 	"syscall"
 
 	"github.com/rasulov-emirlan/poc-auth/config"
+	"github.com/rasulov-emirlan/poc-auth/internal/domains/auth"
 	"github.com/rasulov-emirlan/poc-auth/internal/storage/mongodb"
 	"github.com/rasulov-emirlan/poc-auth/pkg/logging"
 )
 
 type application struct {
-	ctx    context.Context
-	cancel context.CancelFunc
-
-	logger *slog.Logger
-
-	cfg config.Config
-
-	mdb mongodb.RepoCombiner
-
+	ctx          context.Context
+	cancel       context.CancelFunc
+	logger       *slog.Logger
+	cfg          config.Config
 	cleanupFuncs []func()
+
+	// dependencies below
+
+	mdb        mongodb.RepoCombiner
+	authDomain auth.Service
 }
 
 func Run() {
@@ -35,6 +36,10 @@ func Run() {
 
 	if err := a.initDB(); err != nil {
 		a.fatal("failed to init db", err)
+	}
+
+	if err := a.initDomains(); err != nil {
+		a.fatal("failed to init domains", err)
 	}
 
 	if err := a.initHttp(); err != nil {
@@ -58,6 +63,8 @@ func (a *application) cleanup() {
 	for _, f := range a.cleanupFuncs {
 		f()
 	}
+
+	a.logger.InfoContext(a.ctx, "cleanup done. bye bye")
 }
 
 func (a *application) init() error {

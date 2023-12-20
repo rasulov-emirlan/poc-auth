@@ -1,6 +1,7 @@
 package logging
 
 import (
+	"context"
 	"log/slog"
 	"os"
 
@@ -15,6 +16,19 @@ var levels = map[string]slog.Level{
 	"error": slog.LevelError,
 }
 
+const ReqIdKey = "request-id"
+
+type handler struct {
+	slog.Handler
+}
+
+func (h handler) Handle(ctx context.Context, r slog.Record) error {
+	if reqId, ok := ctx.Value(ReqIdKey).(string); ok {
+		r.Add(ReqIdKey, slog.StringValue(reqId))
+	}
+	return h.Handler.Handle(ctx, r)
+}
+
 func NewLogger(logLevel string) *slog.Logger {
 	level, ok := levels[logLevel]
 	if !ok {
@@ -26,11 +40,11 @@ func NewLogger(logLevel string) *slog.Logger {
 	}
 
 	if logLevel == "dev" {
-		l = slog.New(tint.NewHandler(os.Stdout, &tint.Options{
+		l = slog.New(handler{tint.NewHandler(os.Stdout, &tint.Options{
 			Level: level,
-		}))
+		})})
 	} else {
-		l = slog.New(slog.NewTextHandler(os.Stdout, &options))
+		l = slog.New(handler{slog.NewTextHandler(os.Stdout, &options)})
 	}
 	slog.SetDefault(l)
 	return l

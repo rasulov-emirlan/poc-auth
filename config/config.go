@@ -10,16 +10,22 @@ import (
 
 type (
 	Config struct {
-		Database database `yaml:"database"`
-		Server   server   `yaml:"server"`
-		LogLevel string   `yaml:"log_level" env:"LOG_LEVEL" env-default:"dev"`
-		Flags    flags    `yaml:"flags"`
+		Database   database   `yaml:"database"`
+		FusionAuth fusionAuth `yaml:"fusion_auth"`
+		Server     server     `yaml:"server"`
+		LogLevel   string     `yaml:"log_level" env:"LOG_LEVEL" env-default:"dev"`
+		Flags      flags      `yaml:"flags"`
 	}
 
 	server struct {
 		Port         string        `yaml:"port" env:"PORT" env-default:":8080"`
 		TimeoutRead  time.Duration `yaml:"timeout_read" env:"TIMEOUT_READ" env-default:"5s"`
 		TimeoutWrite time.Duration `yaml:"timeout_write" env:"TIMEOUT_WRITE" env-default:"5s"`
+	}
+
+	fusionAuth struct {
+		Host   string `yaml:"host" env:"FUSION_AUTH_HOST" env-default:"http://localhost:9011"`
+		ApiKey string `yaml:"api_key" env:"FUSION_AUTH_API_KEY" env-required:"true"`
 	}
 
 	database struct {
@@ -32,6 +38,7 @@ type (
 		Database string `yaml:"database" env:"MONGO_DATABASE" env-default:"auth"`
 		Username string `yaml:"username" env:"MONGO_USERNAME" env-default:"root"`
 		Password string `yaml:"password" env:"MONGO_PASSWORD" env-default:"root"`
+		URI      string `yaml:"uri" env:"MONGO_URI"`
 	}
 
 	flags struct {
@@ -41,6 +48,9 @@ type (
 )
 
 func (mondodb mongoConfig) GetURI() string {
+	if mondodb.URI != "" {
+		return mondodb.URI
+	}
 	return fmt.Sprintf("mongodb://%s:%s@%s:%s/%s",
 		mondodb.Username,
 		mondodb.Password,

@@ -1,0 +1,57 @@
+version: "3.8"
+
+services:
+  fusionauth:
+    image: fusionauth/fusionauth-app:latest
+    container_name: fusionauth
+    depends_on:
+      - fusionauth-db
+    environment:
+      DATABASE_URL: jdbc:postgresql://fusionauth-db:5432/fusionauth
+      DATABASE_ROOT_USER: postgres
+      DATABASE_ROOT_PASSWORD: postgrespassword
+      DATABASE_USER: fusionauth
+      DATABASE_PASSWORD: fusionauthpassword
+      FUSIONAUTH_MEMORY: 512M
+    ports:
+      - "9011:9011" # FusionAuth admin UI and API port
+    restart: always
+
+  fusionauth-db:
+    image: postgres:latest
+    container_name: fusionauth-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword
+      POSTGRES_DB: fusionauth
+    volumes:
+      - fusionauth-db-data:/var/lib/postgresql/data
+    restart: always
+
+  poc-auth-mongodb:
+    image: mongo:latest
+    container_name: poc-auth-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: root
+      MONGO_INITDB_DATABASE: auth
+    volumes:
+      - mongodb_data:/data/db
+    restart: always
+
+  poc-auth-service:
+    build: .
+    container_name: poc-auth-service
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./config.yaml:/app/config.yaml
+    depends_on:
+      - poc-auth-mongodb
+    command: ["--config=/app/config.yaml"]
+    restart: always
+
+volumes:
+  mongodb_data:

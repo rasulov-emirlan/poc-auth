@@ -10,25 +10,37 @@ import (
 	slogecho "github.com/samber/slog-echo"
 
 	"github.com/rasulov-emirlan/poc-auth/config"
+	"github.com/rasulov-emirlan/poc-auth/internal/domains/auth"
 )
 
 type server struct {
 	srvr *http.Server
 }
 
-func NewServer(cfg config.Config) server {
+type ServerConfigs struct {
+	Cfg        config.Config
+	AuthDomain auth.Service
+}
+
+func NewServer(cfg ServerConfigs) server {
 	srvr := http.Server{
-		Addr:         cfg.Server.Port,
-		ReadTimeout:  cfg.Server.TimeoutRead,
-		WriteTimeout: cfg.Server.TimeoutWrite,
+		Addr:         cfg.Cfg.Server.Port,
+		ReadTimeout:  cfg.Cfg.Server.TimeoutRead,
+		WriteTimeout: cfg.Cfg.Server.TimeoutWrite,
 	}
 
 	router := echo.New()
 	router.Use(middleware.Gzip())
 	router.Use(middleware.CORS())
-	router.Use(middleware.RequestID())
+	router.Use(middlewareRequestID)
 	router.Use(slogecho.New(slog.Default()))
 	router.Use(middleware.RemoveTrailingSlash())
+
+	authHandler := authHandler{
+		service: cfg.AuthDomain,
+	}
+
+	router.POST("/auth/login", authHandler.Login)
 
 	srvr.Handler = router
 

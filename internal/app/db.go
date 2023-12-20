@@ -24,5 +24,7 @@ func (a *application) initDB() error {
 		}
 	})
 
+	a.logger.InfoContext(a.ctx, "mongodb connection established")
+
 	return nil
 }
