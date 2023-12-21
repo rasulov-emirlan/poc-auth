@@ -16,7 +16,9 @@ var levels = map[string]slog.Level{
 	"error": slog.LevelError,
 }
 
-const ReqIdKey = "request-id"
+type key string
+
+const ReqIdKey key = "request-id"
 
 type handler struct {
 	slog.Handler
@@ -24,7 +26,7 @@ type handler struct {
 
 func (h handler) Handle(ctx context.Context, r slog.Record) error {
 	if reqId, ok := ctx.Value(ReqIdKey).(string); ok {
-		r.Add(ReqIdKey, slog.StringValue(reqId))
+		r.Add(string(ReqIdKey), slog.StringValue(reqId))
 	}
 	return h.Handler.Handle(ctx, r)
 }
