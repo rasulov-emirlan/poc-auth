@@ -72,6 +72,12 @@ func (s Service) Login(ctx context.Context, email, password string) (Session, er
 }
 
 func (s Service) Register(ctx context.Context, email, password, firstname, lastname string) (Session, error) {
+	if len(password) < 8 {
+		return Session{}, ErrPasswordTooShort
+	}
+	if len(firstname) < 1 || len(lastname) < 1 {
+		return Session{}, ErrFirstnameOrLastnameTooShort
+	}
 	var user fusionauth.RegistrationRequest
 
 	user.Registration = fusionauth.UserRegistration{
