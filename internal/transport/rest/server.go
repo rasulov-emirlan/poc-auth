@@ -41,6 +41,7 @@ func NewServer(cfg ServerConfigs) server {
 	}
 
 	router.POST("/auth/login", authHandler.Login)
+	router.POST("/auth/register", authHandler.Register)
 
 	srvr.Handler = router
 

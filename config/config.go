@@ -25,6 +25,7 @@ type (
 
 	fusionAuth struct {
 		Host   string `yaml:"host" env:"FUSION_AUTH_HOST" env-default:"http://localhost:9011"`
+		AppId  string `yaml:"app_id" env:"FUSION_AUTH_APP_ID" env-default:"poc-auth"`
 		ApiKey string `yaml:"api_key" env:"FUSION_AUTH_API_KEY" env-required:"true"`
 	}
 
