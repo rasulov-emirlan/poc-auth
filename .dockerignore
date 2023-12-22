@@ -1,5 +1,4 @@
 bin
 .env
 config.yaml
-mongodb_data
-*.pem
+key_cert.pem

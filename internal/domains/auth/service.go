@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/FusionAuth/go-client/pkg/fusionauth"
-	"github.com/golang-jwt/jwt"
+
 	"github.com/rasulov-emirlan/poc-auth/internal/entities"
 )
 
@@ -24,7 +24,6 @@ type (
 		usersRepo     UsersRepository
 		fusionClient  *fusionauth.FusionAuthClient
 		applicationId string
-		publicKeyPem  []byte
 		log           *slog.Logger
 	}
 )
@@ -44,7 +43,6 @@ func NewService(ctx context.Context, cfg ServiceConfigs) (Service, error) {
 		usersRepo:     cfg.UsersRepository,
 		fusionClient:  authClient,
 		applicationId: cfg.Cfg.FusionAuth.AppId,
-		publicKeyPem:  []byte(cfg.Cfg.FusionAuth.PublicKeyPem),
 		log:           cfg.Logger,
 	}, nil
 }
@@ -85,6 +83,8 @@ func (s Service) Register(ctx context.Context, email, password, firstname, lastn
 	}
 	user.User.Email = email
 	user.User.Password = password
+	user.User.FirstName = firstname
+	user.User.LastName = lastname
 
 	res, errors, err := s.fusionClient.Register("", user)
 	if err != nil {
@@ -118,11 +118,6 @@ func (s Service) Register(ctx context.Context, email, password, firstname, lastn
 }
 
 func (s Service) ForgotPassword(ctx context.Context, email string) error {
-	if _, err := s.usersRepo.GetByEmail(ctx, email); err != nil {
-		s.log.DebugContext(ctx, "failed to get user by email", "error", err)
-		return ErrEmailNotFound
-	}
-
 	var req fusionauth.ForgotPasswordRequest
 
 	req.ApplicationId = s.applicationId
@@ -139,17 +134,12 @@ func (s Service) ForgotPassword(ctx context.Context, email string) error {
 		return fmt.Errorf("failed to forgot password: %s", errors.Error())
 	}
 
-	s.log.DebugContext(ctx, "Forgot password", "email", email, "response", res)
+	s.log.DebugContext(ctx, "Forgot password", "email", email, "change_id", res.ChangePasswordId)
 
 	return nil
 }
 
-func (s Service) ResetPassword(ctx context.Context, email, password, token string) error {
-	if _, err := s.usersRepo.GetByEmail(ctx, email); err != nil {
-		s.log.DebugContext(ctx, "failed to get user by email", "error", err)
-		return ErrEmailNotFound
-	}
-
+func (s Service) ResetPassword(ctx context.Context, password, token string) error {
 	var req fusionauth.ChangePasswordRequest
 
 	req.ApplicationId = s.applicationId
@@ -166,7 +156,7 @@ func (s Service) ResetPassword(ctx context.Context, email, password, token strin
 		return fmt.Errorf("failed to reset password: %s", errors.Error())
 	}
 
-	s.log.DebugContext(ctx, "Reset password", "email", email, "response", res)
+	s.log.DebugContext(ctx, "Reset password", "response", res)
 
 	return nil
 }
@@ -193,31 +183,25 @@ func (s Service) RefreshToken(ctx context.Context, refreshToken string) (Session
 }
 
 func (s Service) VerifyToken(ctx context.Context, tokenString string) (entities.User, error) {
-	publicKey, err := jwt.ParseRSAPublicKeyFromPEM(s.publicKeyPem)
+	res, errs, err := s.fusionClient.RetrieveUserUsingJWTWithContext(ctx, tokenString)
 	if err != nil {
-		return entities.User{}, fmt.Errorf("error parsing RSA public key: %v", err)
+		s.log.DebugContext(ctx, "Failed to verify token", "error", err.Error(), "errors", errs.Error())
+		return entities.User{}, fmt.Errorf("failed to verify token: %w", err)
 	}
 
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		// Validate the alg is what you expect
-		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-		}
-		return publicKey, nil
-	})
-
-	if err != nil {
-		return entities.User{}, fmt.Errorf("error parsing token: %v", err)
+	if errs != nil {
+		s.log.DebugContext(ctx, "Failed to verify token", "error", errs.Error())
+		return entities.User{}, fmt.Errorf("failed to verify token: %s", errs.Error())
 	}
 
-	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		email := claims["email"].(string)
-		user, err := s.usersRepo.GetByEmail(ctx, email)
-		if err != nil {
-			return entities.User{}, fmt.Errorf("failed to get user by email: %w", err)
-		}
+	s.log.DebugContext(ctx, "Verified token", "response", res)
 
-		return user, nil
+	if res.User.Email != "" {
+		return entities.User{
+			Email:     res.User.Email,
+			Firstname: res.User.FirstName,
+			Lastname:  res.User.LastName,
+		}, nil
 	}
 
 	return entities.User{}, fmt.Errorf("invalid token")

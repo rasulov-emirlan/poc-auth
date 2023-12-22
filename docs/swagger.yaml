@@ -1,0 +1,142 @@
+basePath: /
+definitions:
+  rest.AuthLoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    type: object
+  rest.AuthLoginResponse:
+    properties:
+      access_token:
+        type: string
+      refresh_token:
+        type: string
+    type: object
+  rest.AuthRegisterRequest:
+    properties:
+      email:
+        type: string
+      firstname:
+        type: string
+      lastname:
+        type: string
+      password:
+        type: string
+    type: object
+  rest.AuthResetPasswordRequest:
+    properties:
+      password:
+        type: string
+    type: object
+info:
+  contact: {}
+  description: This is a sample server for POC-Auth API.
+  title: POC-Auth API
+  version: "1.0"
+paths:
+  /forgot-password/{email}:
+    post:
+      consumes:
+      - application/json
+      description: Initiates a password reset process for a user
+      parameters:
+      - description: User Email
+        in: path
+        name: email
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+      summary: Forgot password
+      tags:
+      - auth
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Logs in a user by email and password
+      parameters:
+      - description: Login Request
+        in: body
+        name: AuthLoginRequest
+        required: true
+        schema:
+          $ref: '#/definitions/rest.AuthLoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/rest.AuthLoginResponse'
+      summary: User login
+      tags:
+      - auth
+  /refresh:
+    post:
+      consumes:
+      - application/json
+      description: Refreshes the authentication token
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/rest.AuthLoginResponse'
+      summary: Refresh token
+      tags:
+      - auth
+  /register:
+    post:
+      consumes:
+      - application/json
+      description: Registers a new user
+      parameters:
+      - description: Register Request
+        in: body
+        name: AuthRegisterRequest
+        required: true
+        schema:
+          $ref: '#/definitions/rest.AuthRegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/rest.AuthLoginResponse'
+      summary: User registration
+      tags:
+      - auth
+  /reset-password/{token}:
+    post:
+      consumes:
+      - application/json
+      description: Resets the user's password
+      parameters:
+      - description: Token
+        in: path
+        name: token
+        required: true
+        type: string
+      - description: Reset Password Request
+        in: body
+        name: AuthResetPasswordRequest
+        required: true
+        schema:
+          $ref: '#/definitions/rest.AuthResetPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+      summary: Reset password
+      tags:
+      - auth
+swagger: "2.0"

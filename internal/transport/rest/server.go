@@ -1,3 +1,4 @@
+//go:generate swag init -g ./internal/transport/rest/server.go
 package rest
 
 import (
@@ -7,11 +8,18 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	_ "github.com/rasulov-emirlan/poc-auth/docs"
 	slogecho "github.com/samber/slog-echo"
+	echoSwagger "github.com/swaggo/echo-swagger"
 
 	"github.com/rasulov-emirlan/poc-auth/config"
 	"github.com/rasulov-emirlan/poc-auth/internal/domains/auth"
 )
+
+// @title POC-Auth API
+// @description This is a sample server for POC-Auth API.
+// @version 1.0
+// @BasePath /
 
 type server struct {
 	srvr *http.Server
@@ -36,6 +44,10 @@ func NewServer(cfg ServerConfigs) server {
 	router.Use(slogecho.New(slog.Default()))
 	router.Use(middleware.RemoveTrailingSlash())
 
+	router.GET("/swagger/*", echoSwagger.WrapHandler)
+
+	slog.Default().DebugContext(context.Background(), "Server started on port "+cfg.Cfg.Server.Port)
+
 	authHandler := authHandler{
 		service: cfg.AuthDomain,
 	}
@@ -43,8 +55,8 @@ func NewServer(cfg ServerConfigs) server {
 	router.POST("/auth/login", authHandler.Login)
 	router.POST("/auth/register", authHandler.Register)
 	router.POST("/auth/refresh", authHandler.Refresh)
-	router.POST("/auth/forgot-password/:email", authHandler.ForgotPassword, authHandler.middlewareExtractUser)
-	router.POST("/auth/reset-password/:token", authHandler.ResetPassword, authHandler.middlewareExtractUser)
+	router.POST("/auth/forgot-password/:email", authHandler.ForgotPassword)
+	router.POST("/auth/reset-password/:token", authHandler.ResetPassword)
 
 	srvr.Handler = router
 

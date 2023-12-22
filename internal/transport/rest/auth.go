@@ -33,8 +33,20 @@ type (
 		AccessToken  string `json:"access_token"`
 		RefreshToken string `json:"refresh_token"`
 	}
+
+	AuthResetPasswordRequest struct {
+		Password string `json:"password"`
+	}
 )
 
+// @Summary User login
+// @Description Logs in a user by email and password
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param AuthLoginRequest body AuthLoginRequest true "Login Request"
+// @Success 200 {object} AuthLoginResponse
+// @Router /login [post]
 func (h authHandler) Login(ctx echo.Context) error {
 	var req AuthLoginRequest
 
@@ -62,6 +74,14 @@ func (h authHandler) Login(ctx echo.Context) error {
 	})
 }
 
+// @Summary User registration
+// @Description Registers a new user
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param AuthRegisterRequest body AuthRegisterRequest true "Register Request"
+// @Success 200 {object} AuthLoginResponse
+// @Router /register [post]
 func (h authHandler) Register(ctx echo.Context) error {
 	var req AuthRegisterRequest
 
@@ -89,6 +109,14 @@ func (h authHandler) Register(ctx echo.Context) error {
 	})
 }
 
+// @Summary Forgot password
+// @Description Initiates a password reset process for a user
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param email path string true "User Email"
+// @Success 204
+// @Router /forgot-password/{email} [post]
 func (h authHandler) ForgotPassword(ctx echo.Context) error {
 	email := ctx.Param("email")
 
@@ -99,8 +127,17 @@ func (h authHandler) ForgotPassword(ctx echo.Context) error {
 	return ctx.NoContent(http.StatusOK)
 }
 
+// @Summary Reset password
+// @Description Resets the user's password
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param token path string true "Token"
+// @Param AuthResetPasswordRequest body AuthResetPasswordRequest true "Reset Password Request"
+// @Success 204
+// @Router /reset-password/{token} [post]
 func (h authHandler) ResetPassword(ctx echo.Context) error {
-	var req AuthLoginRequest
+	var req AuthResetPasswordRequest
 
 	if err := ctx.Bind(&req); err != nil {
 		return responsError(ctx, err)
@@ -108,13 +145,20 @@ func (h authHandler) ResetPassword(ctx echo.Context) error {
 
 	token := ctx.Param("token")
 
-	if err := h.service.ResetPassword(ctx.Request().Context(), req.Email, req.Password, token); err != nil {
+	if err := h.service.ResetPassword(ctx.Request().Context(), req.Password, token); err != nil {
 		return responsError(ctx, err)
 	}
 
 	return ctx.NoContent(http.StatusOK)
 }
 
+// @Summary Refresh token
+// @Description Refreshes the authentication token
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Success 200 {object} AuthLoginResponse
+// @Router /refresh [post]
 func (h authHandler) Refresh(ctx echo.Context) error {
 	refreshToken, err := ctx.Cookie(refreshTokenKey)
 	if err != nil {
