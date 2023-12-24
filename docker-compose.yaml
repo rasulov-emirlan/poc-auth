@@ -7,6 +7,7 @@ services:
     depends_on:
       - fusionauth-db
     environment:
+      FUSIONAUTH_KICKSTART: /usr/local/fusionauth/config/kickstart.json
       DATABASE_URL: jdbc:postgresql://fusionauth-db:5432/fusionauth
       DATABASE_ROOT_USER: postgres
       DATABASE_ROOT_PASSWORD: postgrespassword
@@ -16,6 +17,8 @@ services:
     ports:
       - "9011:9011" # FusionAuth admin UI and API port
     restart: always
+    volumes:
+      - ./kickstart.json:/usr/local/fusionauth/config/kickstart.json
 
   fusionauth-db:
     image: postgres:latest

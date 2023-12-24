@@ -3,3 +3,4 @@ bin
 config.yaml
 mongodb_data
 *.pem
+kickstart.json
