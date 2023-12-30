@@ -2,30 +2,31 @@ version: "3.8"
 
 services:
   fusionauth:
-    image: fusionauth/fusionauth-app:latest
+    image: fusionauth/fusionauth-app:1.36.4
     container_name: fusionauth
     depends_on:
       - fusionauth-db
     environment:
-      FUSIONAUTH_KICKSTART: /usr/local/fusionauth/config/kickstart.json
-      DATABASE_URL: jdbc:postgresql://fusionauth-db:5432/fusionauth
+      FUSIONAUTH_APP_KICKSTART_FILE: /usr/local/fusionauth/config/kickstart.json
+      FUSIONAUTH_APP_RUNTIME_MODE: development
+      DATABASE_URL: jdbc:postgresql://fusionauth-db:5432/fusionauth?sslmode=disable
       DATABASE_ROOT_USER: postgres
-      DATABASE_ROOT_PASSWORD: postgrespassword
-      DATABASE_USER: fusionauth
-      DATABASE_PASSWORD: fusionauthpassword
+      DATABASE_ROOT_PASSWORD: postgres
+      DATABASE_USER: postgres
+      DATABASE_PASSWORD: postgres
       FUSIONAUTH_MEMORY: 512M
     ports:
       - "9011:9011" # FusionAuth admin UI and API port
-    restart: always
+    restart: unless-stopped
     volumes:
       - ./kickstart.json:/usr/local/fusionauth/config/kickstart.json
 
   fusionauth-db:
-    image: postgres:latest
+    image: postgres:14-alpine
     container_name: fusionauth-db
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgrespassword
+      POSTGRES_PASSWORD: postgres
       POSTGRES_DB: fusionauth
     volumes:
       - fusionauth-db-data:/var/lib/postgresql/data
@@ -42,7 +43,7 @@ services:
       MONGO_INITDB_DATABASE: auth
     volumes:
       - mongodb_data:/data/db
-    restart: always
+    restart: unless-stopped
 
   poc-auth-service:
     build: .
@@ -55,7 +56,7 @@ services:
     depends_on:
       - poc-auth-mongodb
     command: ["--config=/app/config.yaml"]
-    restart: always
+    restart: unless-stopped
 
 volumes:
   mongodb_data:
